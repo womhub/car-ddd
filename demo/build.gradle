@@ -1,0 +1,91 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.12'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id("io.github.euledge.code-atlas") version "1.1.0"
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(22)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+	jqassistant
+}
+
+repositories {
+	mavenCentral()
+}
+
+// codeAtlas {
+//     formats.set(listOf("plantuml", "mermaid"))
+//     outputDir.set("docs/diagrams")
+//     rootPackages.set(listOf("com.example.domain", "com.example.infrastructure")) // 任意: パッケージプレフィックスでクラスをフィルタリング
+//     showDetails.set(true) // 任意: 公開フィールドとメソッドを図に含める
+//     stripPackagePrefix.set("com.example.") // 任意: クラス名から共通のパッケージプレフィックスを削除
+//     groupByPackage.set(true) // 任意: パッケージごとにクラスをグループ化（namespace/package構文を使用）
+// }
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	jqassistant "com.buschmais.jqassistant:jqassistant-commandline:2.5.0"
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+def jqaHome = "${project.rootDir}/jqassistant-commandline-neo4jv5-2.5.0"
+
+task jqassistantScan(type: Exec) {
+    group = "verification"
+    description = "Run jQAssistant scan"
+    dependsOn classes
+
+    workingDir project.rootDir
+
+    commandLine "bash",
+            "${jqaHome}/bin/jqassistant.sh",
+            "scan",
+            "-f", "${buildDir}/classes/java/main"
+}
+
+task jqassistantAnalyze(type: Exec) {
+    group = "verification"
+    description = "Run jQAssistant analyze"
+    dependsOn jqassistantScan
+
+    workingDir project.rootDir
+
+    commandLine "bash",
+            "${jqaHome}/bin/jqassistant.sh",
+            "analyze"
+}
+
+task jqassistantReport(type: Exec) {
+    group = "verification"
+    description = "Run jQAssistant report"
+    dependsOn jqassistantAnalyze
+
+    workingDir project.rootDir
+
+    commandLine "bash",
+            "${jqaHome}/bin/jqassistant.sh",
+            "report"
+}
+
+
